@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Environment
+.env
+.venv/
+
+# Generated audio and DB
+temp_audio.mp3
+reminders.db
+
+# IDE
+.vscode/

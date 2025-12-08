@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skye AI Assistant</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #666;
+            margin-bottom: 20px;
+        }
+        
+        .input-section {
+            margin-bottom: 20px;
+        }
+        
+        textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            resize: vertical;
+            min-height: 100px;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        button {
+            padding: 12px 24px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            flex: 1;
+        }
+        
+        button:hover {
+            background: #5a67d8;
+        }
+        
+        #listenBtn {
+            background: #48bb78;
+        }
+        
+        #listenBtn:hover {
+            background: #38a169;
+        }
+        
+        .response-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 5px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .features {
+            margin-top: 40px;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .feature-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .feature-card h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        
+        .feature-card p {
+            margin: 0;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #48bb78;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="status" id="status">Online</div>
+    
+    <div class="container">
+        <div class="header">
+            <h1>🎙️ Skye AI Assistant</h1>
+            <p>Your intelligent voice and text assistant powered by AI</p>
+        </div>
+        
+        <div class="input-section">
+            <textarea id="commandInput" placeholder="Type your command here or use voice input... 
+Examples:
+• 'What time is it?'
+• 'Tell me a joke'
+• 'Weather in London'
+• 'Play some music'
+• 'Calculate 15 * 27'"></textarea>
+            
+            <div class="button-group">
+                <button id="sendBtn">Send Command</button>
+                <button id="listenBtn">🎤 Speak Command</button>
+                <button id="clearBtn">Clear</button>
+            </div>
+        </div>
+        
+        <div class="response-section">
+            <h3>Response:</h3>
+            <div id="responseArea">Waiting for your command...</div>
+        </div>
+        
+        <div class="features">
+            <h3>Available Features</h3>
+            <div class="feature-grid" id="featuresGrid">
+                <!-- Features will be loaded dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const commandInput = document.getElementById('commandInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const listenBtn = document.getElementById('listenBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const responseArea = document.getElementById('responseArea');
+        const featuresGrid = document.getElementById('featuresGrid');
+        const statusIndicator = document.getElementById('status');
+
+        // Check assistant status
+        async function checkStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+                
+                if (data.success) {
+                    statusIndicator.textContent = 'Online';
+                    statusIndicator.style.background = '#48bb78';
+                    loadFeatures();
+                } else {
+                    statusIndicator.textContent = 'Offline';
+                    statusIndicator.style.background = '#f56565';
+                }
+            } catch (error) {
+                statusIndicator.textContent = 'Error';
+                statusIndicator.style.background = '#f56565';
+            }
+        }
+
+        // Load available features
+        async function loadFeatures() {
+            try {
+                const response = await fetch('/api/features');
+                const data = await response.json();
+                
+                if (data.success) {
+                    let html = '';
+                    Object.entries(data.features).forEach(([category, features]) => {
+                        features.forEach(feature => {
+                            html += `
+                                <div class="feature-card">
+                                    <h4>${feature.command}</h4>
+                                    <p>${feature.description}</p>
+                                </div>
+                            `;
+                        });
+                    });
+                    featuresGrid.innerHTML = html;
+                }
+            } catch (error) {
+                console.error('Error loading features:', error);
+            }
+        }
+
+        // Send command to assistant
+        async function sendCommand() {
+            const command = commandInput.value.trim();
+            
+            if (!command) {
+                alert('Please enter a command');
+                return;
+            }
+            
+            // Show loading
+            responseArea.innerHTML = '<em>Processing...</em>';
+            
+            try {
+                const response = await fetch('/api/process', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ command: command })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    responseArea.innerHTML = `
+                        <strong>You:</strong> ${data.command}<br><br>
+                        <strong>Skye:</strong> ${data.response}
+                    `;
+                    
+                    // Speak the response
+                    speakResponse(data.response);
+                } else {
+                    responseArea.innerHTML = `<strong>Error:</strong> ${data.error}`;
+                }
+            } catch (error) {
+                responseArea.innerHTML = `<strong>Error:</strong> ${error.message}`;
+            }
+        }
+
+        // Voice recognition (simplified)
+        let isListening = false;
+        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = 'en-US';
+
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            commandInput.value = transcript;
+            sendCommand();
+        };
+
+        recognition.onerror = (event) => {
+            console.error('Speech recognition error:', event.error);
+            responseArea.innerHTML = `<strong>Error:</strong> Speech recognition failed`;
+        };
+
+        // Text-to-speech
+        function speakResponse(text) {
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 1.0;
+                utterance.pitch = 1.0;
+                utterance.volume = 1.0;
+                
+                // Try to get female voice
+                const voices = speechSynthesis.getVoices();
+                const femaleVoice = voices.find(voice => 
+                    voice.name.toLowerCase().includes('female') || 
+                    voice.name.toLowerCase().includes('zira') ||
+                    voice.name.toLowerCase().includes('samantha')
+                );
+                
+                if (femaleVoice) {
+                    utterance.voice = femaleVoice;
+                }
+                
+                speechSynthesis.speak(utterance);
+            }
+        }
+
+        // Event Listeners
+        sendBtn.addEventListener('click', sendCommand);
+        
+        commandInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendCommand();
+            }
+        });
+
+        listenBtn.addEventListener('click', () => {
+            if (!isListening) {
+                recognition.start();
+                isListening = true;
+                listenBtn.textContent = '🎤 Listening...';
+                responseArea.innerHTML = '<em>Listening... Speak now</em>';
+                
+                setTimeout(() => {
+                    if (isListening) {
+                        recognition.stop();
+                        isListening = false;
+                        listenBtn.textContent = '🎤 Speak Command';
+                    }
+                }, 5000);
+            } else {
+                recognition.stop();
+                isListening = false;
+                listenBtn.textContent = '🎤 Speak Command';
+            }
+        });
+
+        clearBtn.addEventListener('click', () => {
+            commandInput.value = '';
+            responseArea.innerHTML = 'Waiting for your command...';
+        });
+
+        // Initialize
+        checkStatus();
+        
+        // Check status every 30 seconds
+        setInterval(checkStatus, 30000);
+    </script>
+</body>
+</html>
